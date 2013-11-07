@@ -1,0 +1,9 @@
+nbproject/private/
+nbproject/ant-deploy.xml
+nbproject/build-impl.xml
+nbproject/genfiles.properties
+build/
+dist/
+specs/nbproject/private/
+specs/spec/config.yml
+web/META-INF/
