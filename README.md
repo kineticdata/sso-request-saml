@@ -40,24 +40,28 @@ Kinetic Request:
 After building the project a `dist` directory will be created to contain all the files that need to
 be deployed to the web server.
 
-1. Copy the `dist/remote_user-authenticator.properties` file to the `<kinetic_request_deploy_directory>/WEB-INF/classes` 
-   directory, and configure the properties. Properties are documented in the remote_user-authenticator.properties file.
+1. Copy the `dist/samlv2-authenticator.properties` file to the `<kinetic_request_deploy_directory>/WEB-INF/classes` 
+   directory, and configure the properties. Properties are documented in the samlv2-authenticator.properties file.
    
-2. Copy the `dist/REMOTE_USER-authenticator.jar` file to the `<kinetic_request_deploy_directory>/WEB-INF/lib` 
-   directory.
+2. Copy the dist/SAMLLanding.jsp file to the `<kinetic_request_deploy_directory>`
    
-3. Login to the Kinetic Request Admin Console and set the following web application properties:
+3. Copy the `dist/samlv2-authenticator.jar` & samlv2-dependencies.jar files to the 
+   `<kinetic_request_deploy_directory>/WEB-INF/lib` directory.
+   
+4. Copy the `dist/fedlet` directory to a path of your choice, then document this path.
+
+5. Add the -Dcom.sun.identity.fedlet.home java parameter to your J2EE server configuration to point to
+   the path you chose in step 4. For example: -Dcom.sun.identity.fedlet.home="c:\fedlet_config_folder"
+   
+6. Configure the fedlet configuration files contained in the directory you chose in step 4.
+   See the section below 'Fedlet Configuration' on how to configure these files.
+      
+7. Login to the Kinetic Request Admin Console and set the following web application properties:
    - **API Impersonate User** => `true (make sure the checkbox is checked)`
-   - **SSO Adapter Class** => `com.kineticdata.request.authentication.remoteuser.RemoteUserAuthenticator`
-   - **SSO Adapter Properties** => `path/to/remote_user-authenticator.properties`
-   
-4. Ensure your J2EE server does not overwrite the REMOTE_USER HTTP header. With Tomcat for example you need to
-   place: tomcatAuthentication="false" in the connector node inside the server.xml file.
-   
-5. Ensure your J2EE server cannot be accessed directly by end users. End users should only be able to access the
-   J2EE server through the reverse proxy. This SSO plugin implicitly trusts what is put into the REMOTE_USER HTTP header.
-   
-6. Restart the web server instance for the new files to be included.
+   - **SSO Adapter Class** => `com.kineticdata.request.authentication.SAML2Authenticator`
+   - **SSO Adapter Properties** => `path/to/samlv2-authenticator.properties`
+
+8. Restart the web server instance for the new files to be included.
 
 
 ## Implementation
@@ -80,3 +84,24 @@ use the authentication service:
 5. Change the **Authentication Type** selection to *External*.
 6. The **Authentication URL** is not used by this adapter, so it may be left blank.
 7. Save the service item.
+
+
+## Fedlet configuration files
+
+  FederationConfig.properties - This file will very rarely need modification except for maybe the am.encryption.pwd property.
+                                All properties are highly commented in the file.
+								
+  fedlet.cot                  - This is the 'circle of trust' file. For most implementations you should only need to modify the 
+                                sun-fm-trusted-providers property. This property contains the entity IDs of Identity Providers
+                                you wish to trust. These entity IDs must match exactly with what is 
+
+  sp.xml                      - The sp.xml file is the 'service provider' configuration file.
+  
+  sp-extended.xml             -   
+  
+  idp.xml                     - There is a chance that you might be able to replace this file with the exported metadata from your
+                                service provider without any modifications, but for some identity providers like ADFS 2.0 modification
+								is necessary. Modification information for the idp.xml file for ADFS 2.0 can be found at the following link:
+								https://wikis.forgerock.org/confluence/display/openam/OpenAM+and+ADFS2+configuration
+  
+  idp-extended.xml            - 
