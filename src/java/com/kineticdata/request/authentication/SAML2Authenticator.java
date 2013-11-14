@@ -43,12 +43,16 @@ import javax.servlet.ServletException;
 public class SAML2Authenticator extends Authenticator {
     // Constants
     // These values represent defaults, but can be overridden in the properties file
+    private static final String ARS_USER_FORM_DISABLED_STATUS_VALUE = "Disabled";
+    private static final String AUTHENTICATION_URL = "/login.jsp";
     private static final String SOURCE_FORM = "User";
     private static final String SOURCE_LOOKUPFIELD = "Login Name";
     private static final String SOURCE_RETURNFIELD = "101";
-    private static final String AUTHENTICATION_URL = "/login.jsp";
+    
+    private final String LOGGER_ID = getClass().getSimpleName() + " :: ";
 
     // Instance variables
+    private String arsUserFormDisabledStatusValue;
     private String enableLogging;
     private String lookupArs;
     private String sourceForm;
@@ -91,12 +95,18 @@ public class SAML2Authenticator extends Authenticator {
         if (routeAuthenticationUrl == null || routeAuthenticationUrl.trim().length()==0) {
             routeAuthenticationUrl = AUTHENTICATION_URL;
         }
+        
+        // The Remedy User form status value indicating the Remedy User account is disabled
+        arsUserFormDisabledStatusValue = properties.getProperty("ARS.UserForm.DisabledStatusValue");
+        if (arsUserFormDisabledStatusValue == null || arsUserFormDisabledStatusValue.trim().length()==0) {
+            arsUserFormDisabledStatusValue = ARS_USER_FORM_DISABLED_STATUS_VALUE;
+        }
 
         routeLogoutUrl = properties.getProperty("SAML2Authenticator.route.logoutURL");
         
         if (isLoggingEnabled) {
-            logger.info(getClass().getSimpleName()+ 
-                " - fedlet home directory: " + getFedletHome());
+            logger.info(LOGGER_ID+ 
+                "fedlet home directory: " + getFedletHome());
         }
     }
     
@@ -121,7 +131,7 @@ public class SAML2Authenticator extends Authenticator {
         if (localUserContext.isAuthenticated()) {
             if (isLoggingEnabled && logger.isDebugEnabled()) {
                 logger.debug(this.getClass().getSimpleName()
-                        +" - User is already authenticated: "+localUserContext.getUserName());
+                        +"User is already authenticated: "+localUserContext.getUserName());
             }
             authorized = true;
         } else {
@@ -142,8 +152,8 @@ public class SAML2Authenticator extends Authenticator {
                         getResponse().SC_INTERNAL_SERVER_ERROR, "failedToProcessSSOResponse",
                         sme.getMessage());
                     if (isLoggingEnabled) {
-                        logger.error(this.getClass().getSimpleName()+
-                            " - SAML2 Response parsing exception: " + sme.getMessage());
+                        logger.error(LOGGER_ID+
+                            "SAML2 Response parsing exception: " + sme.getMessage());
                     }
                     return false;
                 } catch (IOException ioe) {
@@ -151,8 +161,8 @@ public class SAML2Authenticator extends Authenticator {
                         getResponse().SC_INTERNAL_SERVER_ERROR, "failedToProcessSSOResponse",
                         ioe.getMessage());
                     if (isLoggingEnabled) {
-                        logger.error(this.getClass().getSimpleName()+
-                            " - IO Exception: " + ioe.getMessage());
+                        logger.error(LOGGER_ID+
+                            "IO Exception: " + ioe.getMessage());
                     }
                     return false;
                 } catch (SessionException se) {
@@ -162,8 +172,8 @@ public class SAML2Authenticator extends Authenticator {
                         "failedToProcessSSOResponse",
                         se.getMessage());
                     if (isLoggingEnabled) {
-                        logger.error(this.getClass().getSimpleName()+
-                            " - Session Exception: " + se.getMessage());
+                        logger.error(LOGGER_ID+
+                            "Session Exception: " + se.getMessage());
                     }
                     return false;
                 } catch (ServletException se) {
@@ -171,14 +181,14 @@ public class SAML2Authenticator extends Authenticator {
                         getResponse().SC_BAD_REQUEST, "failedToProcessSSOResponse",
                         se.getMessage());
                     if (isLoggingEnabled) {
-                        logger.error(this.getClass().getSimpleName()+
-                            " - Servlet Exception: " + se.getMessage());
+                        logger.error(LOGGER_ID+
+                            "Servlet Exception: " + se.getMessage());
                     }
                     return false;
                 } finally {
                     if (isLoggingEnabled && logger.isTraceEnabled()) {
-                        logger.trace(this.getClass().getSimpleName()+
-                            " - SAMLResponse: " + getRequest().getParameter("SAMLResponse"));
+                        logger.trace(LOGGER_ID+
+                            "SAMLResponse: " + getRequest().getParameter("SAMLResponse"));
                     }
                 }
                 // END : code is a must for Fedlet (SP) side application
@@ -196,37 +206,37 @@ public class SAML2Authenticator extends Authenticator {
                     String format = nameId.getFormat();
 
                     if (logger.isTraceEnabled()) {
-                        logger.trace(this.getClass().getSimpleName()+
-                            " - IDP Entity ID: " + entityID);
+                        logger.trace(LOGGER_ID+
+                            "IDP Entity ID: " + entityID);
                     }
                     
                     if (format != null) {
-                        logger.trace(this.getClass().getSimpleName()+
-                            " - NameID format: " + format);
+                        logger.trace(LOGGER_ID+
+                            "NameID format: " + format);
                     }
                     if (value != null) {
-                        logger.trace(this.getClass().getSimpleName()+
-                            " - NameID value: " + value);
+                        logger.trace(LOGGER_ID+
+                            "NameID value: " + value);
                     }
                     if (sessionIndex != null) {
-                        logger.trace(this.getClass().getSimpleName()+
-                            " - SessionIndex: " + sessionIndex);
+                        logger.trace(LOGGER_ID+
+                            "SessionIndex: " + sessionIndex);
                     }
                     if (samlResp != null) {
-                        logger.trace(this.getClass().getSimpleName()+
-                            " - SAML Response: " + samlResp.toXMLString());
+                        logger.trace(LOGGER_ID+
+                            "SAML Response: " + samlResp.toXMLString());
                     }
                     if (subject != null) {
-                        logger.trace(this.getClass().getSimpleName()+
-                            " - SAML Subject: " + subject);
+                        logger.trace(LOGGER_ID+
+                            "SAML Subject: " + subject);
                     }
                     if (assertion != null) {
-                        logger.trace(this.getClass().getSimpleName()+
-                            " - SAML Assertion: " + assertion.toXMLString());
+                        logger.trace(LOGGER_ID+
+                            "SAML Assertion: " + assertion.toXMLString());
                     }
                     if (assertion != null) {
-                        logger.trace(this.getClass().getSimpleName()+
-                            " - SAML Assertion: " + assertion.toXMLString());
+                        logger.trace(LOGGER_ID+
+                            "SAML Assertion: " + assertion.toXMLString());
                     }
                 }
                 
@@ -234,9 +244,9 @@ public class SAML2Authenticator extends Authenticator {
                 
                 if (isLoggingEnabled && logger.isDebugEnabled()) {
                     if (attrs != null) {
-                        logger.debug(this.getClass().getSimpleName()+ " - SAML Attribute Map size: " + String.valueOf(attrs.size()));
+                        logger.debug(LOGGER_ID+ "SAML Attribute Map size: " + String.valueOf(attrs.size()));
                         if (attrs.isEmpty()) { 
-                            logger.debug(this.getClass().getSimpleName()+ " - Make sure mapped attributes in sp-extended.xml are set properly.");
+                            logger.debug(LOGGER_ID+ "Make sure mapped attributes in sp-extended.xml are set properly.");
                         }
                         Iterator iter = attrs.keySet().iterator();
                         while (iter.hasNext()) {
@@ -245,12 +255,12 @@ public class SAML2Authenticator extends Authenticator {
                             if ((attrVals != null) && !attrVals.isEmpty()) {
                                 Iterator it = attrVals.iterator();
                                 while (it.hasNext()) {
-                                    logger.debug(this.getClass().getSimpleName()+ "ATTRIBUTE: " + attrName + "=" + it.next());
+                                    logger.debug(LOGGER_ID+ "ATTRIBUTE: " + attrName + "=" + it.next());
                                 }
                             }
                         }
                     } else {
-                        logger.debug(this.getClass().getSimpleName()+" - ATTRIBUTE_MAP returned null");
+                        logger.debug(LOGGER_ID+"ATTRIBUTE_MAP returned null");
                     }
                 }
                 
@@ -263,7 +273,7 @@ public class SAML2Authenticator extends Authenticator {
                     if (this.lookupFromARS) {
                         if (isLoggingEnabled && logger.isDebugEnabled()) {
                             logger.debug(this.getClass().getSimpleName()
-                                    +" - Lookup Remedy Login Name from Remedy form "+this.sourceForm);
+                                    +"Lookup Remedy Login Name from Remedy form "+this.sourceForm);
                         }
                         loginId = getRemedyLoginId(samlUser[0]);
                     }
@@ -271,31 +281,40 @@ public class SAML2Authenticator extends Authenticator {
                     else {
                         if (isLoggingEnabled && logger.isDebugEnabled()) {
                             logger.debug(this.getClass().getSimpleName()
-                                    +" - Submitting Remedy Login Name directly from the first mapped SAML attribute uid.");
+                                    +"Submitting Remedy Login Name directly from the first mapped SAML attribute uid.");
                         }
                         loginId = samlUser[0];
                     }
 
                     // If the Remedy Login Name has been determined, authenticate the user
                     if (loginId != null && loginId.length() > 0) {
-                        if (isLoggingEnabled && logger.isDebugEnabled()) {
-                            logger.debug(this.getClass().getSimpleName()+" - Authenticating user: "+loginId);
-                        }
-                        authenticate(loginId, null, null);
-                        if (isLoggingEnabled && logger.isDebugEnabled()) {
-                            logger.debug(this.getClass().getSimpleName()+" - Authenticated user: "+loginId);
-                        }
+                        
+                        // If the Remedy User account is NOT disabled
+                        if (!isUserAccountDisabled(loginId)) {
+                        
+                            if (isLoggingEnabled && logger.isDebugEnabled()) {
+                                logger.debug(LOGGER_ID+"Authenticating user: "+loginId);
+                            }
+                            authenticate(loginId, null, null);
+                            if (isLoggingEnabled && logger.isDebugEnabled()) {
+                                logger.debug(LOGGER_ID+"Authenticated user: "+loginId);
+                            }
 
-                        if (isLoggingEnabled && logger.isDebugEnabled()) {
-                            logger.debug(this.getClass().getSimpleName()
-                                    +" - Redirecting user to destination url: " + localUserContext.getFullRedirectURL());
+                            if (isLoggingEnabled && logger.isDebugEnabled()) {
+                                logger.debug(this.getClass().getSimpleName()
+                                        +"Redirecting user to destination url: " + localUserContext.getFullRedirectURL());
+                            }
+                            doRedirect(localUserContext.getFullRedirectURL());
+                            
+                        // If the Remedy User account IS disabled...
+                        } else {
+                            
                         }
-                        doRedirect(localUserContext.getFullRedirectURL());
                     }
                     // Remedy Login Name is null or blank
                     else {
                         if (isLoggingEnabled && logger.isDebugEnabled()) {
-                            logger.debug(this.getClass().getSimpleName()+" - Remedy Login Name was blank");
+                            logger.debug(LOGGER_ID+"Remedy Login Name was blank");
                         }
                         // Send to authentication URL
                         sendToAuthenticationUrl();
@@ -386,7 +405,7 @@ public class SAML2Authenticator extends Authenticator {
         else {
             String message = "Cannot authenticate with a blank username";
             if (isLoggingEnabled) {
-                logger.error(this.getClass().getSimpleName()+" - "+message);
+                logger.error(LOGGER_ID+message);
             }
             throw new RuntimeException(message);
         }
@@ -404,7 +423,7 @@ public class SAML2Authenticator extends Authenticator {
         if ((this.routeLogoutUrl != null) && (this.routeLogoutUrl.length() > 0)) {
             setLogoutPage(this.routeLogoutUrl);
             if (isLoggingEnabled && logger.isDebugEnabled()) {
-                logger.debug(this.getClass().getSimpleName()+" - logging out user and redirecting to: "
+                logger.debug(LOGGER_ID+"logging out user and redirecting to: "
                         +this.routeLogoutUrl);
             }
             doRedirect(this.routeLogoutUrl);
@@ -432,6 +451,9 @@ public class SAML2Authenticator extends Authenticator {
     /*--------------------------------------------------------------------------------------------
      * PRIVATE HELPER METHODS
      --------------------------------------------------------------------------------------------*/
+    
+    
+    
 
     /**
      * Lookup the Fedlet Home directory that will be used by the OpenSSO API.
@@ -481,11 +503,63 @@ public class SAML2Authenticator extends Authenticator {
             }
             catch (Exception e) {
                 if (isLoggingEnabled) {
-                    logger.error(this.getClass().getSimpleName()+" - Error retriving user record from Remedy", e);
+                    logger.error(LOGGER_ID+"Error retriving user record from Remedy", e);
                 }
             }
         }
         return userId;
+    }
+    
+    /**
+     * Checks if the Remedy User account is disabled for the provided login id.
+     *
+     * <p>This method explictly check for Disabled instead of "Current" for the possibility
+     * of allowing guest users.  This would only be achieved if the LookupARS configuration
+     * property value was set to False (F).</p>
+     *
+     * <p>If the user record is not found, this method returns false, indicating the user account
+     * is NOT disabled, because technically it isn't.</p>
+     * 
+     * @param remedyLoginId The Remedy Login ID that will be checked.
+     * @return true if the User record is disabled, else false
+     */
+    private boolean isUserAccountDisabled(String remedyLoginId) {
+        // Declare the result
+        boolean disabled = false;
+
+        // Field IDs on the Remedy User form
+        String STATUS_FIELD_ID = "7";
+        String REMEDY_LOGIN_FIELD_ID = "101";
+        // Define the fields to return with the entry
+        String[] fields = {STATUS_FIELD_ID};
+        // Look up the Remedy User record if a login was provided
+        if (remedyLoginId != null && remedyLoginId.length() > 0) {
+            try {
+                // Use ArsHelpers to avoid calling the Remedy API directly
+                ArsPrecisionHelper helper = new ArsPrecisionHelper(RemedyHandler.getDefaultHelperContext());
+                SimpleEntry entry = helper.getFirstSimpleEntry("User", "'"+REMEDY_LOGIN_FIELD_ID+"'=\""+remedyLoginId+"\"", fields);
+                // If the entry was found
+                if (entry != null) {
+                    String status = entry.getEntryFieldValue(STATUS_FIELD_ID);
+                    disabled = arsUserFormDisabledStatusValue.equals(status);
+                    if (logger.isTraceEnabled()) {
+                        logger.trace(LOGGER_ID+"The status of the Remedy User account for "+remedyLoginId+" is "+status);
+                    }
+                }
+                // Entry was not found
+                else {
+                    if (logger.isTraceEnabled()) {
+                        logger.trace(LOGGER_ID+"Failed to retreived the Remedy User account for loginId: "+remedyLoginId);
+                    }
+                }
+            }
+            catch (Exception e) {
+                if (logger.isTraceEnabled()) {
+                    logger.trace(LOGGER_ID+"Failed to retreived Remedy User account for loginId: "+remedyLoginId, e);
+                }
+            }
+        }
+        return disabled;
     }
     
     private void sendToAuthenticationUrl() throws Exception {
@@ -504,7 +578,7 @@ public class SAML2Authenticator extends Authenticator {
             getRequest().getSession(true).setAttribute("UserContext", getUserContext());
             if (isLoggingEnabled && logger.isDebugEnabled()) {
                 logger.debug(this.getClass().getSimpleName()
-                        +" - Sending to Authentication URL for direct ARS authentication: "
+                        +"Sending to Authentication URL for direct ARS authentication: "
                         +fullRedirectURL);
             }
             doRedirect(fullRedirectURL);
