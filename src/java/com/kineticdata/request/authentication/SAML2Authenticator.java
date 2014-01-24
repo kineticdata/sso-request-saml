@@ -234,10 +234,6 @@ public class SAML2Authenticator extends Authenticator {
                         logger.trace(LOGGER_ID+
                             "SAML Assertion: " + assertion.toXMLString());
                     }
-                    if (assertion != null) {
-                        logger.trace(LOGGER_ID+
-                            "SAML Assertion: " + assertion.toXMLString());
-                    }
                 }
                 
                 Map attrs = (Map)map.get(SAML2Constants.ATTRIBUTE_MAP);
