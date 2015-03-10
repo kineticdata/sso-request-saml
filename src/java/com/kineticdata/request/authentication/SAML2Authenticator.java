@@ -15,6 +15,7 @@ import com.sun.identity.saml2.assertion.Subject;
 import com.sun.identity.saml2.common.SAML2Constants;
 import com.sun.identity.saml2.common.SAML2Utils;
 import com.sun.identity.saml2.common.SAML2Exception;
+import com.sun.identity.saml2.jaxb.metadata.SPSSODescriptorElement;
 import com.sun.identity.saml2.meta.SAML2MetaManager;
 import com.sun.identity.saml2.profile.SPACSUtils;
 import com.sun.identity.saml2.profile.SPSSOFederate;
@@ -54,6 +55,7 @@ public class SAML2Authenticator extends Authenticator {
     // Instance variables
     private String arsUserFormDisabledStatusValue;
     private String enableLogging;
+    private String compareNameIdOrAttribute;
     private String lookupArs;
     private String sourceForm;
     private String sourceLookupField;
@@ -76,6 +78,11 @@ public class SAML2Authenticator extends Authenticator {
         // Debug logging
         enableLogging = properties.getProperty("SAML2Authenticator.enableLogging");
         if ("F".equalsIgnoreCase(enableLogging)) { isLoggingEnabled = false; }
+        
+        compareNameIdOrAttribute = properties.getProperty("SAML2Authenticator.nameId.or.attribute");
+        if (compareNameIdOrAttribute == null || compareNameIdOrAttribute.trim().length()==0) {
+            compareNameIdOrAttribute = "nameid";
+        }
 
         // Remedy Lookup
         lookupArs = properties.getProperty("SAML2Authenticator.lookupARS");
@@ -105,7 +112,7 @@ public class SAML2Authenticator extends Authenticator {
         routeLogoutUrl = properties.getProperty("SAML2Authenticator.route.logoutURL");
         
         if (isLoggingEnabled) {
-            logger.info(LOGGER_ID+ 
+            logger.info(LOGGER_ID + 
                 "fedlet home directory: " + getFedletHome());
         }
     }
@@ -139,20 +146,20 @@ public class SAML2Authenticator extends Authenticator {
 
             if (getRequest().getParameter("SAMLResponse") != null) {
                 
-                // BEGIN : following code is a must for Fedlet (SP) side application
+                // BEGIN : following code is a must for Fedlet (SP) side applications
                 Map map;
                 try {
                     // invoke the Fedlet processing logic. this will do all the
                     // necessary processing conforming to SAMLv2 specifications,
                     // such as XML signature validation, Audience and Recipient
                     // validation etc.
-                    map = SPACSUtils.processResponseForFedlet(getRequest(), getResponse());
+                    map = SPACSUtils.processResponseForFedlet(getRequest(), getResponse(), getResponse().getWriter());
                 } catch (SAML2Exception sme) {
                     SAMLUtils.sendError(getRequest(), getResponse(),
                         getResponse().SC_INTERNAL_SERVER_ERROR, "failedToProcessSSOResponse",
                         sme.getMessage());
                     if (isLoggingEnabled) {
-                        logger.error(LOGGER_ID+
+                        logger.error(LOGGER_ID +
                             "SAML2 Response parsing exception: " + sme.getMessage());
                     }
                     return false;
@@ -161,7 +168,7 @@ public class SAML2Authenticator extends Authenticator {
                         getResponse().SC_INTERNAL_SERVER_ERROR, "failedToProcessSSOResponse",
                         ioe.getMessage());
                     if (isLoggingEnabled) {
-                        logger.error(LOGGER_ID+
+                        logger.error(LOGGER_ID +
                             "IO Exception: " + ioe.getMessage());
                     }
                     return false;
@@ -172,7 +179,7 @@ public class SAML2Authenticator extends Authenticator {
                         "failedToProcessSSOResponse",
                         se.getMessage());
                     if (isLoggingEnabled) {
-                        logger.error(LOGGER_ID+
+                        logger.error(LOGGER_ID +
                             "Session Exception: " + se.getMessage());
                     }
                     return false;
@@ -181,97 +188,28 @@ public class SAML2Authenticator extends Authenticator {
                         getResponse().SC_BAD_REQUEST, "failedToProcessSSOResponse",
                         se.getMessage());
                     if (isLoggingEnabled) {
-                        logger.error(LOGGER_ID+
+                        logger.error(LOGGER_ID +
                             "Servlet Exception: " + se.getMessage());
                     }
                     return false;
                 } finally {
                     if (isLoggingEnabled && logger.isTraceEnabled()) {
-                        logger.trace(LOGGER_ID+
+                        logger.trace(LOGGER_ID +
                             "SAMLResponse: " + getRequest().getParameter("SAMLResponse"));
                     }
                 }
                 // END : code is a must for Fedlet (SP) side application
                 
-                // Heavy duty logging for troubleshooting in the future.
-                if (isLoggingEnabled && logger.isTraceEnabled()) {
-                    Response samlResp = (Response) map.get(SAML2Constants.RESPONSE); 
-                    Assertion assertion = (Assertion) map.get(SAML2Constants.ASSERTION);
-                    Subject subject = (Subject) map.get(SAML2Constants.SUBJECT);
-                    String entityID = (String) map.get(SAML2Constants.IDPENTITYID);
-                    String spEntityID = (String) map.get(SAML2Constants.SPENTITYID);
-                    String sessionIndex = (String) map.get(SAML2Constants.SESSION_INDEX);
-                    NameID nameId = (NameID) map.get(SAML2Constants.NAMEID);
-                    String value = nameId.getValue();
-                    String format = nameId.getFormat();
-
-                    if (logger.isTraceEnabled()) {
-                        logger.trace(LOGGER_ID+
-                            "IDP Entity ID: " + entityID);
-                    }
-                    
-                    if (format != null) {
-                        logger.trace(LOGGER_ID+
-                            "NameID format: " + format);
-                    }
-                    if (value != null) {
-                        logger.trace(LOGGER_ID+
-                            "NameID value: " + value);
-                    }
-                    if (sessionIndex != null) {
-                        logger.trace(LOGGER_ID+
-                            "SessionIndex: " + sessionIndex);
-                    }
-                    if (samlResp != null) {
-                        logger.trace(LOGGER_ID+
-                            "SAML Response: " + samlResp.toXMLString());
-                    }
-                    if (subject != null) {
-                        logger.trace(LOGGER_ID+
-                            "SAML Subject: " + subject);
-                    }
-                    if (assertion != null) {
-                        logger.trace(LOGGER_ID+
-                            "SAML Assertion: " + assertion.toXMLString());
-                    }
-                }
+                String samlUser = getUsernameFromSamlResponse(map);
                 
-                Map attrs = (Map)map.get(SAML2Constants.ATTRIBUTE_MAP);
-                
-                if (isLoggingEnabled && logger.isDebugEnabled()) {
-                    if (attrs != null) {
-                        logger.debug(LOGGER_ID+ "SAML Attribute Map size: " + String.valueOf(attrs.size()));
-                        if (attrs.isEmpty()) { 
-                            logger.debug(LOGGER_ID+ "Make sure mapped attributes in sp-extended.xml are set properly.");
-                        }
-                        Iterator iter = attrs.keySet().iterator();
-                        while (iter.hasNext()) {
-                            String attrName = (String) iter.next();
-                            Set attrVals = (HashSet) attrs.get(attrName);
-                            if ((attrVals != null) && !attrVals.isEmpty()) {
-                                Iterator it = attrVals.iterator();
-                                while (it.hasNext()) {
-                                    logger.debug(LOGGER_ID+ "ATTRIBUTE: " + attrName + "=" + it.next());
-                                }
-                            }
-                        }
-                    } else {
-                        logger.debug(LOGGER_ID+"ATTRIBUTE_MAP returned null");
-                    }
-                }
-                
-                
-                Set sUser = (HashSet)attrs.get("uid");
-                if (sUser != null) {
-                    String[] samlUser = (String[])sUser.toArray(new String[0]);
-                
+                if (samlUser != null) {
                     // If the Remedy Login Name should be translated from Remedy
                     if (this.lookupFromARS) {
                         if (isLoggingEnabled && logger.isDebugEnabled()) {
                             logger.debug(this.getClass().getSimpleName()
                                     +"Lookup Remedy Login Name from Remedy form "+this.sourceForm);
                         }
-                        loginId = getRemedyLoginId(samlUser[0]);
+                        loginId = getRemedyLoginId(samlUser);
                     }
                     // Else just use the user name extracted from the SAML Assertion.
                     else {
@@ -279,7 +217,7 @@ public class SAML2Authenticator extends Authenticator {
                             logger.debug(this.getClass().getSimpleName()
                                     +"Submitting Remedy Login Name directly from the first mapped SAML attribute uid.");
                         }
-                        loginId = samlUser[0];
+                        loginId = samlUser;
                     }
 
                     // If the Remedy Login Name has been determined, authenticate the user
@@ -289,11 +227,11 @@ public class SAML2Authenticator extends Authenticator {
                         if (!isUserAccountDisabled(loginId)) {
                         
                             if (isLoggingEnabled && logger.isDebugEnabled()) {
-                                logger.debug(LOGGER_ID+"Authenticating user: "+loginId);
+                                logger.debug(LOGGER_ID +"Authenticating user: "+loginId);
                             }
                             authenticate(loginId, null, null);
                             if (isLoggingEnabled && logger.isDebugEnabled()) {
-                                logger.debug(LOGGER_ID+"Authenticated user: "+loginId);
+                                logger.debug(LOGGER_ID +"Authenticated user: "+loginId);
                             }
 
                             if (isLoggingEnabled && logger.isDebugEnabled()) {
@@ -310,35 +248,36 @@ public class SAML2Authenticator extends Authenticator {
                     // Remedy Login Name is null or blank
                     else {
                         if (isLoggingEnabled && logger.isDebugEnabled()) {
-                            logger.debug(LOGGER_ID+"Remedy Login Name was blank");
+                            logger.debug(LOGGER_ID +"Remedy Login Name was blank");
                         }
                         // Send to authentication URL
                         sendToAuthenticationUrl();
                     }
                 } else {
-                    logger.debug("Could not find uid mapped attribute. Login failed.");                    
+                    logger.debug("Could not find a username in the SAML Response. Check to see if the nameid.or.attribute property is setup correctly. Login failed.");                    
                 }
 
             // No SAMLResponse Request Parameter found...Do redirect to IdP.
             } else {
 
-                // TODO: Take config params that specify SP & IdP info?
+                // TODO?: Take config params that specify SP & IdP info
                 SAML2MetaManager manager = new SAML2MetaManager();
                 List idpEntities = manager.getAllRemoteIdentityProviderEntities("/");
+                List spEntities = manager.getAllHostedServiceProviderEntities("/");
+                String spEntityID = (String) spEntities.get(0);
                 List spMetaAliases = manager.getAllHostedServiceProviderMetaAliases("/");
                 String idpEntityID = (String) idpEntities.get(0);
                 String metaAlias = (String) spMetaAliases.get(0);
                 Map paramsMap = SAML2Utils.getParamsMap(getRequest());
-
-                List list = new ArrayList();
-                list.add(SAML2Constants.NAMEID_TRANSIENT_FORMAT);
-                paramsMap.put(SAML2Constants.NAMEID_POLICY_FORMAT, list);
+                
+                SPSSODescriptorElement spDescriptor = manager.getSPSSODescriptor("/", spEntityID);
+                paramsMap.put(SAML2Constants.NAMEID_POLICY_FORMAT, spDescriptor.getNameIDFormat());
 
                 if (paramsMap.get(SAML2Constants.BINDING) == null) {
                     // use POST binding for default
-                    list = new ArrayList();
-                    list.add(SAML2Constants.HTTP_POST);
-                    paramsMap.put(SAML2Constants.BINDING, list);
+                    ArrayList bindingList = new ArrayList();
+                    bindingList.add(SAML2Constants.HTTP_POST);
+                    paramsMap.put(SAML2Constants.BINDING, bindingList);
                 }
 
                 try {
@@ -401,7 +340,7 @@ public class SAML2Authenticator extends Authenticator {
         else {
             String message = "Cannot authenticate with a blank username";
             if (isLoggingEnabled) {
-                logger.error(LOGGER_ID+message);
+                logger.error(LOGGER_ID +message);
             }
             throw new RuntimeException(message);
         }
@@ -419,7 +358,7 @@ public class SAML2Authenticator extends Authenticator {
         if ((this.routeLogoutUrl != null) && (this.routeLogoutUrl.length() > 0)) {
             setLogoutPage(this.routeLogoutUrl);
             if (isLoggingEnabled && logger.isDebugEnabled()) {
-                logger.debug(LOGGER_ID+"logging out user and redirecting to: "
+                logger.debug(LOGGER_ID +"logging out user and redirecting to: "
                         +this.routeLogoutUrl);
             }
             doRedirect(this.routeLogoutUrl);
@@ -471,6 +410,88 @@ public class SAML2Authenticator extends Authenticator {
         return fedletHomeDir;
     }
     
+    private String getUsernameFromSamlResponse(Map map) throws SAML2Exception {
+        String result = null;
+        
+        Response samlResp = (Response) map.get(SAML2Constants.RESPONSE); 
+        Assertion assertion = (Assertion) map.get(SAML2Constants.ASSERTION);
+        Subject subject = (Subject) map.get(SAML2Constants.SUBJECT);
+        String entityID = (String) map.get(SAML2Constants.IDPENTITYID);
+        String spEntityID = (String) map.get(SAML2Constants.SPENTITYID);
+        String sessionIndex = (String) map.get(SAML2Constants.SESSION_INDEX);
+        Map attrs = (Map)map.get(SAML2Constants.ATTRIBUTE_MAP);
+        NameID nameId = (NameID) map.get(SAML2Constants.NAMEID);
+        
+        // Heavy duty logging for troubleshooting in the future.
+        if (isLoggingEnabled && logger.isTraceEnabled()) {
+
+            if (logger.isTraceEnabled()) {
+                logger.trace(LOGGER_ID +
+                    "IDP Entity ID: " + entityID);
+            }
+
+            if (nameId.getFormat() != null) {
+                logger.trace(LOGGER_ID +
+                    "NameID format: " + nameId.getFormat());
+            }
+            if (nameId.getValue() != null) {
+                logger.trace(LOGGER_ID +
+                    "NameID value: " + nameId.getValue());
+            }
+            if (sessionIndex != null) {
+                logger.trace(LOGGER_ID +
+                    "SessionIndex: " + sessionIndex);
+            }
+            if (samlResp != null) {
+                logger.trace(LOGGER_ID +
+                    "SAML Response: " + samlResp.toXMLString());
+            }
+            if (subject != null) {
+                logger.trace(LOGGER_ID +
+                    "SAML Subject: " + subject);
+            }
+            if (assertion != null) {
+                logger.trace(LOGGER_ID +
+                    "SAML Assertion: " + assertion.toXMLString());
+            }
+            
+            if (attrs != null) {
+                logger.debug(LOGGER_ID + "SAML Attribute Map size: " + String.valueOf(attrs.size()));
+                if (attrs.isEmpty()) { 
+                    logger.debug(LOGGER_ID + "Make sure mapped attributes in sp-extended.xml are set properly.");
+                }
+                Iterator iter = attrs.keySet().iterator();
+                while (iter.hasNext()) {
+                    String attrName = (String) iter.next();
+                    Set attrVals = (HashSet) attrs.get(attrName);
+                    if ((attrVals != null) && !attrVals.isEmpty()) {
+                        Iterator it = attrVals.iterator();
+                        while (it.hasNext()) {
+                            logger.debug(LOGGER_ID + "ATTRIBUTE: " + attrName + "=" + it.next());
+                        }
+                    }
+                }
+            } else {
+                logger.debug(LOGGER_ID + "ATTRIBUTE_MAP returned null");
+            }
+            
+        }
+
+
+        if (this.compareNameIdOrAttribute.trim().toLowerCase().equals("nameid")) {
+            result = nameId.getValue();
+        } else {
+            Set sUser = (HashSet)attrs.get("uid");
+            if (sUser != null) {
+                result = (String)sUser.iterator().next();
+            } else {
+                logger.debug(LOGGER_ID + "uid attribute not found in SAML Response assertion attributes. Double check sp-extended.xml is properly configured for attribute mappings.");
+            }
+        }
+        
+        return result;
+    }
+    
     /**
      * Lookup the Remedy Login Name from the specified form and fields.  This could be the User 
      * form, the CTM:People form, or some other form that contains a link between the name held in
@@ -499,7 +520,7 @@ public class SAML2Authenticator extends Authenticator {
             }
             catch (Exception e) {
                 if (isLoggingEnabled) {
-                    logger.error(LOGGER_ID+"Error retriving user record from Remedy", e);
+                    logger.error(LOGGER_ID +"Error retriving user record from Remedy", e);
                 }
             }
         }
@@ -539,19 +560,19 @@ public class SAML2Authenticator extends Authenticator {
                     String status = entry.getEntryFieldValue(STATUS_FIELD_ID);
                     disabled = arsUserFormDisabledStatusValue.equals(status);
                     if (logger.isTraceEnabled()) {
-                        logger.trace(LOGGER_ID+"The status of the Remedy User account for "+remedyLoginId+" is "+status);
+                        logger.trace(LOGGER_ID +"The status of the Remedy User account for "+remedyLoginId+" is "+status);
                     }
                 }
                 // Entry was not found
                 else {
                     if (logger.isTraceEnabled()) {
-                        logger.trace(LOGGER_ID+"Failed to retreived the Remedy User account for loginId: "+remedyLoginId);
+                        logger.trace(LOGGER_ID +"Failed to retreived the Remedy User account for loginId: "+remedyLoginId);
                     }
                 }
             }
             catch (Exception e) {
                 if (logger.isTraceEnabled()) {
-                    logger.trace(LOGGER_ID+"Failed to retreived Remedy User account for loginId: "+remedyLoginId, e);
+                    logger.trace(LOGGER_ID +"Failed to retreived Remedy User account for loginId: "+remedyLoginId, e);
                 }
             }
         }

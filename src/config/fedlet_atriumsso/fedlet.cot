@@ -1,0 +1,5 @@
+cot-name=Main
+sun-fm-cot-status=Active
+sun-fm-trusted-providers=Atrium SSO IDP ID here,https://kineticrequest.kineticdata.com/kinetic
+sun-fm-saml2-readerservice-url=
+sun-fm-saml2-writerservice-url=

@@ -13,16 +13,22 @@
 
 		<target name="jar" depends="init,compile">
         <!-- Set the version -->
-        <property name="VERSION" value="0.0.1"/>
+        <property name="VERSION" value="1.0.0"/>
         
         <!-- Initialize a timestamp property for use with the manifest files. -->
         <tstamp>
             <format property="BUILD_DATE" pattern="yyyy-MM-dd'T'HH:mm:ssZ" />
         </tstamp>
         
+        <!-- copy the configuration files -->
+        <echo message="Copying the additional configuration files/folders to the distribution directory"/>
+        <copy todir="${dist.dir}" overwrite="true">
+            <fileset dir="${src.config.dir}"/>
+        </copy>
+        
         <!-- Build the jar file. -->
         <echo message="Building SAMLv2 Authenticator jar file"/>
-        <jar destfile="${dist.dir}/samlv2-authenticator.jar" compress="false">
+        <jar destfile="${dist.dir}/WEB-INF/lib/samlv2-authenticator.jar" compress="false">
             <fileset dir="${build.classes.dir}"
                      includes="com/kineticdata/**"
                      excludes="com/rightstarsystems/**"/>
@@ -36,14 +42,23 @@
                 <attribute name="Build-Date" value="${BUILD_DATE}"/>
             </manifest>
         </jar>
+
+        <!-- zip all of the files to deploy to /kinetic -->
+        <echo message="Zipping the entire contents of the distribution directory..."/>
+        <zip destfile="${dist.dir}/SAMLv2-distribution-package.zip" compress="false">
+            <fileset dir="${dist.dir}"
+                     includes="**"
+                     excludes="README.md,*.zip"/>
+        </zip>
         
-        <!-- copy the README file -->
+        <echo message="Deleting files that were zipped up in the distribution directory..."/>
+        <delete includeemptydirs="true">
+            <fileset dir="${dist.dir}" includes="**/*" excludes="*.zip" />
+        </delete>
+        
         <echo message="Copying the README file to the distribution directory"/>
         <copy file="README.md" todir="${dist.dir}"/>
-        
-        <!-- copy the configuration files -->
-        <echo message="Copying the properties file to the distribution directory"/>
-        <copy file="${src.config.dir}/samlv2-authenticator.properties" todir="${dist.dir}" overwrite="true"/>
+
     </target>
 	
 </project>

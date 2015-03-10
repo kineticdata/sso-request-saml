@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<EntityDescriptor entityID="Atrium SSO IDP ID here" xmlns="urn:oasis:names:tc:SAML:2.0:metadata">
+<IDPSSODescriptor WantAuthnRequestsSigned="false" protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol">
+<KeyDescriptor use="signing">
+<ds:KeyInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
+<ds:X509Data>
+<ds:X509Certificate>Base64EncodedCertificateWithNoLineBreaksHere</ds:X509Certificate>
+</ds:X509Data>
+</ds:KeyInfo>
+</KeyDescriptor>
+<ArtifactResolutionService index="0" isDefault="true" Binding="urn:oasis:names:tc:SAML:2.0:bindings:SOAP" Location="https://yoursubdomain.yourdomain.com/atriumsso/ArtifactResolver/metaAlias/BmcRealm/idp"/>
+<SingleLogoutService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="https://yoursubdomain.yourdomain.com/atriumsso/IDPSloRedirect/metaAlias/BmcRealm/idp" ResponseLocation="https://yoursubdomain.yourdomain.com/atriumsso/IDPSloRedirect/metaAlias/BmcRealm/idp"/>
+<SingleLogoutService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://yoursubdomain.yourdomain.com/atriumsso/IDPSloPOST/metaAlias/BmcRealm/idp" ResponseLocation="https://yoursubdomain.yourdomain.com/atriumsso/IDPSloPOST/metaAlias/BmcRealm/idp"/>
+<SingleLogoutService Binding="urn:oasis:names:tc:SAML:2.0:bindings:SOAP" Location="https://yoursubdomain.yourdomain.com/atriumsso/IDPSloSoap/metaAlias/BmcRealm/idp"/>
+<ManageNameIDService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="https://yoursubdomain.yourdomain.com/atriumsso/IDPMniRedirect/metaAlias/BmcRealm/idp" ResponseLocation="https://yoursubdomain.yourdomain.com/atriumsso/IDPMniRedirect/metaAlias/BmcRealm/idp"/>
+<ManageNameIDService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://yoursubdomain.yourdomain.com/atriumsso/IDPMniPOST/metaAlias/BmcRealm/idp" ResponseLocation="https://yoursubdomain.yourdomain.com/atriumsso/IDPMniPOST/metaAlias/BmcRealm/idp"/>
+<ManageNameIDService Binding="urn:oasis:names:tc:SAML:2.0:bindings:SOAP" Location="https://yoursubdomain.yourdomain.com/atriumsso/IDPMniSoap/metaAlias/BmcRealm/idp"/>
+<NameIDFormat>urn:oasis:names:tc:SAML:2.0:nameid-format:persistent</NameIDFormat>
+<NameIDFormat>urn:oasis:names:tc:SAML:2.0:nameid-format:transient</NameIDFormat>
+<NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress</NameIDFormat>
+<NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:WindowsDomainQualifiedName</NameIDFormat>
+<NameIDFormat>urn:oasis:names:tc:SAML:2.0:nameid-format:kerberos</NameIDFormat>
+<NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:X509SubjectName</NameIDFormat>
+<NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified</NameIDFormat>
+<SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="https://yoursubdomain.yourdomain.com/atriumsso/SSORedirect/metaAlias/BmcRealm/idp"/>
+<SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://yoursubdomain.yourdomain.com/atriumsso/SSOPOST/metaAlias/BmcRealm/idp"/>
+<SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:SOAP" Location="https://yoursubdomain.yourdomain.com/atriumsso/SSOSoap/metaAlias/BmcRealm/idp"/>
+<NameIDMappingService Binding="urn:oasis:names:tc:SAML:2.0:bindings:SOAP" Location="https://yoursubdomain.yourdomain.com/atriumsso/NIMSoap/metaAlias/BmcRealm/idp"/>
+<AssertionIDRequestService Binding="urn:oasis:names:tc:SAML:2.0:bindings:SOAP" Location="https://yoursubdomain.yourdomain.com/atriumsso/AIDReqSoap/IDPRole/metaAlias/BmcRealm/idp"/>
+<AssertionIDRequestService Binding="urn:oasis:names:tc:SAML:2.0:bindings:URI" Location="https://yoursubdomain.yourdomain.com/atriumsso/AIDReqUri/IDPRole/metaAlias/BmcRealm/idp"/>
+</IDPSSODescriptor>
+</EntityDescriptor>
