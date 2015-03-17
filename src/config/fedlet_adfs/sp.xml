@@ -1,5 +1,5 @@
 <EntityDescriptor entityID="https://kineticrequest.kineticdata.com/kinetic" xmlns="urn:oasis:names:tc:SAML:2.0:metadata">
-	<SPSSODescriptor AuthnRequestsSigned="false" WantAssertionsSigned="true" protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol">
+	<SPSSODescriptor AuthnRequestsSigned="false" WantAssertionsSigned="false" protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol">
 		<SingleLogoutService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="https://kineticrequest.kineticdata.com/kinetic/fedletSloRedirect" ResponseLocation="https://kineticrequest.kineticdata.com/kinetic/fedletSloRedirect"/>
 		<SingleLogoutService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://kineticrequest.kineticdata.com/kinetic/fedletSloPOST" ResponseLocation="https://kineticrequest.kineticdata.com/kinetic/fedletSloPOST"/>
 		<NameIDFormat>urn:oasis:names:tc:SAML:2.0:nameid-format:transient</NameIDFormat>

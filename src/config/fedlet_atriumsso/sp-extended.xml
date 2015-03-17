@@ -47,7 +47,7 @@
             <Value>com.sun.identity.saml2.plugins.DefaultLibrarySPAccountMapper</Value>
         </Attribute>
         <Attribute name="useNameIDAsSPUserID">
-            <Value>false</Value>
+            <Value>true</Value>
         </Attribute>
         <Attribute name="spAttributeMapper">
             <Value>com.sun.identity.saml2.plugins.DefaultSPAttributeMapper</Value>

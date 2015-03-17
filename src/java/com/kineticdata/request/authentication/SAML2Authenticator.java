@@ -15,7 +15,9 @@ import com.sun.identity.saml2.assertion.Subject;
 import com.sun.identity.saml2.common.SAML2Constants;
 import com.sun.identity.saml2.common.SAML2Utils;
 import com.sun.identity.saml2.common.SAML2Exception;
+import com.sun.identity.saml2.jaxb.metadata.IDPSSODescriptorElement;
 import com.sun.identity.saml2.jaxb.metadata.SPSSODescriptorElement;
+import com.sun.identity.saml2.jaxb.metadata.SingleSignOnServiceElement;
 import com.sun.identity.saml2.meta.SAML2MetaManager;
 import com.sun.identity.saml2.profile.SPACSUtils;
 import com.sun.identity.saml2.profile.SPSSOFederate;
@@ -46,6 +48,7 @@ public class SAML2Authenticator extends Authenticator {
     // These values represent defaults, but can be overridden in the properties file
     private static final String ARS_USER_FORM_DISABLED_STATUS_VALUE = "Disabled";
     private static final String AUTHENTICATION_URL = "/login.jsp";
+    private static final String AUTHENTICATION_SAML_ATTRIBUTE = "uid";
     private static final String SOURCE_FORM = "User";
     private static final String SOURCE_LOOKUPFIELD = "Login Name";
     private static final String SOURCE_RETURNFIELD = "101";
@@ -56,6 +59,7 @@ public class SAML2Authenticator extends Authenticator {
     private String arsUserFormDisabledStatusValue;
     private String enableLogging;
     private String compareNameIdOrAttribute;
+    private String samlAttributeKey;
     private String lookupArs;
     private String sourceForm;
     private String sourceLookupField;
@@ -78,6 +82,11 @@ public class SAML2Authenticator extends Authenticator {
         // Debug logging
         enableLogging = properties.getProperty("SAML2Authenticator.enableLogging");
         if ("F".equalsIgnoreCase(enableLogging)) { isLoggingEnabled = false; }
+        
+        samlAttributeKey = properties.getProperty("SAML2Authenticator.attributeKey");
+        if (samlAttributeKey == null || samlAttributeKey.trim().length()==0) {
+            samlAttributeKey = AUTHENTICATION_SAML_ATTRIBUTE;
+        }
         
         compareNameIdOrAttribute = properties.getProperty("SAML2Authenticator.nameId.or.attribute");
         if (compareNameIdOrAttribute == null || compareNameIdOrAttribute.trim().length()==0) {
@@ -271,14 +280,18 @@ public class SAML2Authenticator extends Authenticator {
                 Map paramsMap = SAML2Utils.getParamsMap(getRequest());
                 
                 SPSSODescriptorElement spDescriptor = manager.getSPSSODescriptor("/", spEntityID);
-                paramsMap.put(SAML2Constants.NAMEID_POLICY_FORMAT, spDescriptor.getNameIDFormat());
-
-                if (paramsMap.get(SAML2Constants.BINDING) == null) {
-                    // use POST binding for default
-                    ArrayList bindingList = new ArrayList();
-                    bindingList.add(SAML2Constants.HTTP_POST);
-                    paramsMap.put(SAML2Constants.BINDING, bindingList);
-                }
+                IDPSSODescriptorElement idpDescriptor = manager.getIDPSSODescriptor("/", idpEntityID);
+                SingleSignOnServiceElement idpFirstSingleSignonEndpoint = 
+                        (SingleSignOnServiceElement)idpDescriptor.
+                        getSingleSignOnService().
+                        get(0);
+                
+                ArrayList idpBindingList = new ArrayList();
+                idpBindingList.add(idpFirstSingleSignonEndpoint.getBinding());
+                
+                paramsMap.put(SAML2Constants.NAMEID_POLICY_FORMAT, idpDescriptor.getNameIDFormat());
+                paramsMap.put(SAML2Constants.BINDING, idpBindingList);
+                paramsMap.put(SAML2Constants.REQ_BINDING, idpBindingList);
 
                 try {
                     
@@ -425,10 +438,7 @@ public class SAML2Authenticator extends Authenticator {
         // Heavy duty logging for troubleshooting in the future.
         if (isLoggingEnabled && logger.isTraceEnabled()) {
 
-            if (logger.isTraceEnabled()) {
-                logger.trace(LOGGER_ID +
-                    "IDP Entity ID: " + entityID);
-            }
+            logger.trace(LOGGER_ID + "IDP Entity ID: " + entityID);
 
             if (nameId.getFormat() != null) {
                 logger.trace(LOGGER_ID +
@@ -459,17 +469,24 @@ public class SAML2Authenticator extends Authenticator {
                 logger.debug(LOGGER_ID + "SAML Attribute Map size: " + String.valueOf(attrs.size()));
                 if (attrs.isEmpty()) { 
                     logger.debug(LOGGER_ID + "Make sure mapped attributes in sp-extended.xml are set properly.");
-                }
-                Iterator iter = attrs.keySet().iterator();
-                while (iter.hasNext()) {
-                    String attrName = (String) iter.next();
-                    Set attrVals = (HashSet) attrs.get(attrName);
-                    if ((attrVals != null) && !attrVals.isEmpty()) {
-                        Iterator it = attrVals.iterator();
-                        while (it.hasNext()) {
-                            logger.debug(LOGGER_ID + "ATTRIBUTE: " + attrName + "=" + it.next());
+                } else {
+                    Iterator iter = attrs.keySet().iterator();
+                    while (iter.hasNext()) {
+                        String attrName = (String) iter.next();
+                        Set attrVals = (HashSet) attrs.get(attrName);
+                        if ((attrVals != null) && !attrVals.isEmpty()) {
+                            Iterator it = attrVals.iterator();
+                            while (it.hasNext()) {
+                                logger.debug(LOGGER_ID + "ATTRIBUTE: " + attrName + "=" + it.next());
+                            }
                         }
                     }
+                    getRequest().
+                        getSession(true).
+                        setAttribute(
+                            "SAML Assertion Attributes",
+                            attrs
+                        );
                 }
             } else {
                 logger.debug(LOGGER_ID + "ATTRIBUTE_MAP returned null");
@@ -481,11 +498,11 @@ public class SAML2Authenticator extends Authenticator {
         if (this.compareNameIdOrAttribute.trim().toLowerCase().equals("nameid")) {
             result = nameId.getValue();
         } else {
-            Set sUser = (HashSet)attrs.get("uid");
+            Set sUser = (HashSet)attrs.get(samlAttributeKey);
             if (sUser != null) {
                 result = (String)sUser.iterator().next();
             } else {
-                logger.debug(LOGGER_ID + "uid attribute not found in SAML Response assertion attributes. Double check sp-extended.xml is properly configured for attribute mappings.");
+                logger.debug(LOGGER_ID + samlAttributeKey + " attribute not found in SAML Response assertion attributes. Double check sp-extended.xml is properly configured for attribute mappings.");
             }
         }
         
