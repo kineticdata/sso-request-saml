@@ -146,7 +146,7 @@ public class SAML2Authenticator extends Authenticator {
         boolean authorized = false;
         if (localUserContext.isAuthenticated()) {
             if (isLoggingEnabled && logger.isDebugEnabled()) {
-                logger.debug(this.getClass().getSimpleName()
+                logger.debug(LOGGER_ID
                         +"User is already authenticated: "+localUserContext.getUserName());
             }
             authorized = true;
@@ -215,7 +215,7 @@ public class SAML2Authenticator extends Authenticator {
                     // If the Remedy Login Name should be translated from Remedy
                     if (this.lookupFromARS) {
                         if (isLoggingEnabled && logger.isDebugEnabled()) {
-                            logger.debug(this.getClass().getSimpleName()
+                            logger.debug(LOGGER_ID
                                     +"Lookup Remedy Login Name from Remedy form "+this.sourceForm);
                         }
                         loginId = getRemedyLoginId(samlUser);
@@ -223,7 +223,7 @@ public class SAML2Authenticator extends Authenticator {
                     // Else just use the user name extracted from the SAML Assertion.
                     else {
                         if (isLoggingEnabled && logger.isDebugEnabled()) {
-                            logger.debug(this.getClass().getSimpleName()
+                            logger.debug(LOGGER_ID
                                     +"Submitting Remedy Login Name directly from the first mapped SAML attribute uid.");
                         }
                         loginId = samlUser;
@@ -244,7 +244,7 @@ public class SAML2Authenticator extends Authenticator {
                             }
 
                             if (isLoggingEnabled && logger.isDebugEnabled()) {
-                                logger.debug(this.getClass().getSimpleName()
+                                logger.debug(LOGGER_ID
                                         +"Redirecting user to destination url: " + localUserContext.getFullRedirectURL());
                             }
                             doRedirect(localUserContext.getFullRedirectURL());
@@ -263,7 +263,8 @@ public class SAML2Authenticator extends Authenticator {
                         sendToAuthenticationUrl();
                     }
                 } else {
-                    logger.debug("Could not find a username in the SAML Response. Check to see if the nameid.or.attribute property is setup correctly. Login failed.");                    
+                    logger.debug(LOGGER_ID + 
+                            "Could not find a username in the SAML Response. Check to see if the nameid.or.attribute property is setup correctly. Login failed.");                    
                 }
 
             // No SAMLResponse Request Parameter found...Do redirect to IdP.
@@ -525,7 +526,7 @@ public class SAML2Authenticator extends Authenticator {
                 String qualification = "'"+this.sourceLookupField+"'=\""+principalName+"\"";
                 
                 if (isLoggingEnabled) {
-                    logger.debug("Remedy query: " + qualification);
+                    logger.debug(LOGGER_ID + "Remedy query: " + qualification);
                 }
                 
                 // Use ArsHelpers to avoid calling the Remedy API directly
@@ -611,7 +612,7 @@ public class SAML2Authenticator extends Authenticator {
             getUserContext().setAuthenticationType(Authenticator.AUTH_TYPE_DEFAULT);
             getRequest().getSession(true).setAttribute("UserContext", getUserContext());
             if (isLoggingEnabled && logger.isDebugEnabled()) {
-                logger.debug(this.getClass().getSimpleName()
+                logger.debug(LOGGER_ID
                         +"Sending to Authentication URL for direct ARS authentication: "
                         +fullRedirectURL);
             }
