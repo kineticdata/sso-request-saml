@@ -291,7 +291,6 @@ public class SAML2Authenticator extends Authenticator {
                 idpBindingList.add(idpFirstSingleSignonEndpoint.getBinding());
                 
                 paramsMap.put(SAML2Constants.NAMEID_POLICY_FORMAT, idpDescriptor.getNameIDFormat());
-                paramsMap.put(SAML2Constants.BINDING, idpBindingList);
                 paramsMap.put(SAML2Constants.REQ_BINDING, idpBindingList);
 
                 try {
