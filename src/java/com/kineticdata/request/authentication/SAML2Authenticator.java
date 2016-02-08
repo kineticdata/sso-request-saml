@@ -224,7 +224,7 @@ public class SAML2Authenticator extends Authenticator {
                     else {
                         if (isLoggingEnabled && logger.isDebugEnabled()) {
                             logger.debug(LOGGER_ID
-                                    +"Submitting Remedy Login Name directly from the first mapped SAML attribute uid.");
+                                    +"Submitting Remedy Login Name directly from the SAML response - " + samlUser);
                         }
                         loginId = samlUser;
                     }
@@ -464,36 +464,34 @@ public class SAML2Authenticator extends Authenticator {
                 logger.trace(LOGGER_ID +
                     "SAML Assertion: " + assertion.toXMLString());
             }
+        }
             
-            if (attrs != null) {
-                logger.debug(LOGGER_ID + "SAML Attribute Map size: " + String.valueOf(attrs.size()));
-                if (attrs.isEmpty()) { 
-                    logger.debug(LOGGER_ID + "Make sure mapped attributes in sp-extended.xml are set properly.");
-                } else {
-                    Iterator iter = attrs.keySet().iterator();
-                    while (iter.hasNext()) {
-                        String attrName = (String) iter.next();
-                        Set attrVals = (HashSet) attrs.get(attrName);
-                        if ((attrVals != null) && !attrVals.isEmpty()) {
-                            Iterator it = attrVals.iterator();
-                            while (it.hasNext()) {
-                                logger.debug(LOGGER_ID + "ATTRIBUTE: " + attrName + "=" + it.next());
-                            }
+        if (attrs != null) {
+            logger.debug(LOGGER_ID + "SAML Attribute Map size: " + String.valueOf(attrs.size()));
+            if (attrs.isEmpty()) { 
+                logger.debug(LOGGER_ID + "Make sure mapped attributes in sp-extended.xml are set properly.");
+            } else {
+                Iterator iter = attrs.keySet().iterator();
+                while (iter.hasNext()) {
+                    String attrName = (String) iter.next();
+                    Set attrVals = (HashSet) attrs.get(attrName);
+                    if ((attrVals != null) && !attrVals.isEmpty()) {
+                        Iterator it = attrVals.iterator();
+                        while (it.hasNext()) {
+                            logger.debug(LOGGER_ID + "ATTRIBUTE: " + attrName + "=" + it.next());
                         }
                     }
-                    getRequest().
-                        getSession(true).
-                        setAttribute(
-                            "SAML Assertion Attributes",
-                            attrs
-                        );
                 }
-            } else {
-                logger.debug(LOGGER_ID + "ATTRIBUTE_MAP returned null");
+                getRequest().
+                    getSession(true).
+                    setAttribute(
+                        "SAML Assertion Attributes",
+                        attrs
+                    );
             }
-            
+        } else {
+            logger.debug(LOGGER_ID + "ATTRIBUTE_MAP returned null");
         }
-
 
         if (this.compareNameIdOrAttribute.trim().toLowerCase().equals("nameid")) {
             result = nameId.getValue();
